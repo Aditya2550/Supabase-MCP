@@ -12,7 +12,7 @@ from openai import AsyncOpenAI
 
 load_dotenv()
 
-GEMINI_MODEL = "llama-3.3-70b-versatile"   # Using Groq's insanely fast and completely reliable free endpoint
+GEMINI_MODEL = "llama-3.3-70b-versatile"   
 
 class MCPClient:
     def __init__(self):
@@ -92,7 +92,7 @@ class MCPClient:
     async def process_query(self, query: str) -> str:
         messages = [{"role": "user", "content": query}]
 
-    # Load available MCP tools
+    
         mcp_tools = (await self.session.list_tools()).tools
 
         openai_tools = [
@@ -108,7 +108,7 @@ class MCPClient:
         ]
 
         while True:
-            # Ask model what to do next
+            
             print("  -> Calling AI Model...")
             response = await self.openai.chat.completions.create(
                 model=GEMINI_MODEL,
