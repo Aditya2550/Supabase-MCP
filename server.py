@@ -62,7 +62,6 @@ async def bulk_upload(csv_path: str):
         if not data:
             return {"inserted": 0, "message": "CSV had no rows"}
 
-        # Changed insert to upsert so it updates existing SKUs instead of crashing!
         res = supabase.table("products").upsert(data, on_conflict="sku").execute()
         return {"inserted_or_updated": len(res.data or []), "data": res.data}
     except Exception as e:
