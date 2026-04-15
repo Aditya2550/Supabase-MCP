@@ -1,4 +1,5 @@
 import asyncio
+import os
 import sys
 from contextlib import AsyncExitStack
 from pathlib import Path
@@ -11,14 +12,16 @@ from openai import AsyncOpenAI
 
 load_dotenv()
 
-OPENAI_MODEL = "gpt-4.1-mini"   # fast + cheap + supports tool calling
-
+GEMINI_MODEL = "llama-3.3-70b-versatile"   # Using Groq's insanely fast and completely reliable free endpoint
 
 class MCPClient:
     def __init__(self):
         self.session: ClientSession | None = None
         self.exit_stack = AsyncExitStack()
-        self.openai = AsyncOpenAI()
+        self.openai = AsyncOpenAI(
+            api_key=os.environ.get("GROQ_API_KEY"),
+            base_url="https://api.groq.com/openai/v1"
+        )
 
     async def connect_to_server(self, server_script_path: str):
         is_python = server_script_path.endswith(".py")
@@ -106,8 +109,9 @@ class MCPClient:
 
         while True:
             # Ask model what to do next
+            print("  -> Calling AI Model...")
             response = await self.openai.chat.completions.create(
-                model=OPENAI_MODEL,
+                model=GEMINI_MODEL,
                 messages=messages,
                 tools=openai_tools,
             )
@@ -124,6 +128,8 @@ class MCPClient:
             for call in message.tool_calls:
                 tool_name = call.function.name
 
+                print(f"  -> AI decided to use tool: {tool_name}")
+
                 # safer than eval
                 import json
                 tool_args = json.loads(call.function.arguments)
@@ -131,16 +137,31 @@ class MCPClient:
                 # Execute tool via MCP
                 tool_result = await self.session.call_tool(tool_name, tool_args)
 
+                # Extract text from MCP result safely stringify it
+                result_text = ""
+                for msg in tool_result.content:
+                    if msg.type == "text":
+                        result_text += msg.text + "\n"
+                
+                if tool_result.isError:
+                    result_text = "Error: " + result_text
+                    print(f"  -> Tool error: {result_text}")
+                else:
+                    print(f"  -> Tool success")
+
+                if not result_text.strip():
+                    result_text = "Tool executed successfully but returned empty result."
+
                 # Feed tool result back to model
                 messages.append({
                     "role": "tool",
                     "tool_call_id": call.id,
-                    "content": tool_result.content
+                    "content": result_text.strip()
                 })
 
 
     async def chat_loop(self):
-        print("\nMCP Client (OpenAI) Ready")
+        print("\nMCP Client (Groq) Ready")
 
         while True:
             q = input("\nQuery: ").strip()
