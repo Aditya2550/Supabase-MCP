@@ -35,20 +35,20 @@ def coerce(v):
         pass
     return v
 
-@mcp.tool(description="Fetches a record by name")
+@mcp.tool(description="Fetches a product by name from the inventory")
 async def search_record_by_name(name:str):
     response = (
-    supabase.table("registrations")
+    supabase.table("products")
     .select("*")
     .ilike("name", f"%{name}%")
     .execute()
 )
     return response.data
 
-@mcp.tool(description="Inserts a specific record in the table")
-async def insert(name:str,mail:str,year:str,branch:str,division:str,agentic:int,python:int):
-    response=(supabase.table("registrations").insert({"name":name,"mail":mail,"year":year,"branch":branch,"division":division,"agentic":agentic,"python":python}))
-    return response
+@mcp.tool(description="Inserts a specific product into the inventory table")
+async def insert(name:str, category:str, price:float, stock:int, sku:str):
+    response=(supabase.table("products").insert({"name":name,"category":category,"price":price,"stock":stock,"sku":sku}).execute())
+    return response.data
 
 @mcp.tool(description="Bulk uploads the data in the csv_path file to the table")
 async def bulk_upload(csv_path: str):
@@ -62,8 +62,42 @@ async def bulk_upload(csv_path: str):
         if not data:
             return {"inserted": 0, "message": "CSV had no rows"}
 
-        res = supabase.table("registrations").insert(data).execute()
-        return {"inserted": len(res.data or []), "data": res.data}
+        # Changed insert to upsert so it updates existing SKUs instead of crashing!
+        res = supabase.table("products").upsert(data, on_conflict="sku").execute()
+        return {"inserted_or_updated": len(res.data or []), "data": res.data}
+    except Exception as e:
+        return {"error": str(e)}
+
+@mcp.tool(description="Deletes a specific product from the database using its exact SKU")
+async def delete_product_by_sku(sku: str):
+    try:
+        response = supabase.table("products").delete().eq("sku", sku).execute()
+        return {"deleted": len(response.data or []), "data": response.data}
+    except Exception as e:
+        return {"error": str(e)}
+
+@mcp.tool(description="Deletes a specific product from the database using its exact name")
+async def delete_product_by_name(name: str):
+    try:
+        response = supabase.table("products").delete().eq("name", name).execute()
+        return {"deleted": len(response.data or []), "data": response.data}
+    except Exception as e:
+        return {"error": str(e)}
+
+@mcp.tool(description="Reads the contents of a local CSV file and returns the data as JSON.")
+async def read_csv(csv_path: str):
+    try:
+        with open(csv_path, newline="", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            return {"data": list(reader)}
+    except Exception as e:
+        return {"error": str(e)}
+
+@mcp.tool(description="Clears all products from the database. Use this to reset or delete all records.")
+async def clear_products_table():
+    try:
+        response = supabase.table("products").delete().neq("sku", "impossible_sku_123").execute()
+        return {"deleted": len(response.data or []), "message": "All records have been cleared."}
     except Exception as e:
         return {"error": str(e)}
 
