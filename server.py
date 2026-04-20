@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 
 load_dotenv() 
 supabase_url = os.getenv("SUPABASE_URL")
-supabase_key = os.getenv("SUPABASE_KEY")
+supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_KEY")
 if not supabase_url or not supabase_key:
     raise RuntimeError("SUPABASE_URL / SUPABASE_KEY missing")
 
@@ -109,9 +109,6 @@ async def fetch_products_by_min_price(min_price: float):
         return {"error": str(e)}
 
 if __name__ == "__main__":
-    
-    print("URL present?", bool(os.getenv("SUPABASE_URL")))
-    print("KEY present?", bool(os.getenv("SUPABASE_KEY")))
-    print("HELLO WORLD")
-    print("SERVER STARTED")
+    import sys
+    print("Starting server...", file=sys.stderr)
     mcp.run(transport='stdio')
