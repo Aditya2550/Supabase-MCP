@@ -100,6 +100,14 @@ async def clear_products_table():
     except Exception as e:
         return {"error": str(e)}
 
+@mcp.tool(description="Fetches products with a price greater than the specified amount")
+async def fetch_products_by_min_price(min_price: float):
+    try:
+        response = supabase.table("products").select("*").gt("price", min_price).execute()
+        return {"data": response.data}
+    except Exception as e:
+        return {"error": str(e)}
+
 if __name__ == "__main__":
     
     print("URL present?", bool(os.getenv("SUPABASE_URL")))
