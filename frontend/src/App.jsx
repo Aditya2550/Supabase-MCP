@@ -3,8 +3,7 @@ import Navbar from './components/Navbar';
 import ChatPanel from './components/ChatPanel';
 import TableSidebar from './components/TableSidebar';
 import DataGrid from './components/DataGrid';
-import { supabase as initialSupabase, fetchTables } from './supabaseClient';
-import { createClient } from '@supabase/supabase-js';
+import { supabase as initialSupabase, fetchTables, createClient } from './supabaseClient';
 import { MessageSquare, Database } from 'lucide-react';
 
 export default function App() {
