@@ -32,8 +32,8 @@ class MCPClient:
         if is_python:
             path = Path(server_script_path).resolve()
             server_params = StdioServerParameters(
-                command="uv",
-                args=["--directory", str(path.parent), "run", path.name],
+                command=sys.executable,
+                args=[str(path)],
                 env=None,
             )
         else:
