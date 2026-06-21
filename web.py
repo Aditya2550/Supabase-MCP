@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from client import MCPClient
 from contextlib import asynccontextmanager
 import os
+import httpx
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -76,7 +77,13 @@ async def proxy_supabase(path: str, request: Request):
     query_params = dict(request.query_params)
     
     # Map empty path to OpenAPI Spec, otherwise table route
-    target_url = f"{supabase_url}/rest/v1/{path}" if path else f"{supabase_url}/rest/v1/"
+    clean_path = path
+    if clean_path.startswith("rest/v1/"):
+        clean_path = clean_path[len("rest/v1/"):]
+    elif clean_path.startswith("/rest/v1/"):
+        clean_path = clean_path[len("/rest/v1/"):]
+
+    target_url = f"{supabase_url}/rest/v1/{clean_path}" if clean_path else f"{supabase_url}/rest/v1/"
     
     # Headers to pass to Supabase (bypassing browser Origin/Referer to bypass browser block)
     headers = {
