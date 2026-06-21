@@ -7,8 +7,7 @@ import { supabase as initialSupabase, fetchTables, createClient } from './supaba
 import { MessageSquare, Database } from 'lucide-react';
 
 export default function App() {
-  const [supabaseUrl, setSupabaseUrl] = useState(import.meta.env.VITE_SUPABASE_URL || '');
-  const [supabaseKey, setSupabaseKey] = useState(import.meta.env.VITE_SUPABASE_ANON_KEY || '');
+  const [apiUrl, setApiUrl] = useState(import.meta.env.VITE_API_URL || 'http://localhost:8000');
   const [supabaseClient, setSupabaseClient] = useState(() => initialSupabase);
 
   const [tables, setTables] = useState([]);
@@ -24,10 +23,10 @@ export default function App() {
   const [mobileTab, setMobileTab] = useState('data');
 
   // Verify connection and load tables list
-  const verifyConnection = useCallback(async (clientInstance, url, key) => {
-    if (!url || !key) {
+  const verifyConnection = useCallback(async (clientInstance, url) => {
+    if (!url) {
       setIsConnected(false);
-      setConnectionError('Supabase connection parameters are missing. Click settings to configure.');
+      setConnectionError('API Server URL is missing. Click settings to configure.');
       setTables(['products']);
       setActiveTable('products');
       return;
@@ -37,16 +36,11 @@ export default function App() {
     setConnectionError(null);
 
     try {
-      const list = await fetchTables(url, key);
+      const list = await fetchTables(url);
       setTables(list);
 
-      // Verify connection by checking rest specification
-      const response = await fetch(`${url}/rest/v1/`, {
-        headers: {
-          'apikey': key,
-          'Authorization': `Bearer ${key}`
-        }
-      });
+      // Verify connection by checking proxy specification endpoint
+      const response = await fetch(`${url}/api/db/`);
 
       if (response.ok) {
         setIsConnected(true);
@@ -69,14 +63,13 @@ export default function App() {
 
   // Run connection verification on start or client changes
   useEffect(() => {
-    verifyConnection(supabaseClient, supabaseUrl, supabaseKey);
-  }, [supabaseClient, supabaseUrl, supabaseKey, verifyConnection]);
+    verifyConnection(supabaseClient, apiUrl);
+  }, [supabaseClient, apiUrl, verifyConnection]);
 
   // Handle credentials updates from Navbar settings
-  const handleUpdateCredentials = (newUrl, newKey) => {
-    setSupabaseUrl(newUrl);
-    setSupabaseKey(newKey);
-    const newClient = createClient(newUrl, newKey);
+  const handleUpdateCredentials = (newApiUrl) => {
+    setApiUrl(newApiUrl);
+    const newClient = createClient(newApiUrl);
     setSupabaseClient(newClient);
   };
 
@@ -114,8 +107,7 @@ export default function App() {
         connectionError={connectionError}
         theme={theme}
         onToggleTheme={handleToggleTheme}
-        supabaseUrl={supabaseUrl}
-        supabaseKey={supabaseKey}
+        apiUrl={apiUrl}
         onUpdateCredentials={handleUpdateCredentials}
       />
 
@@ -204,7 +196,7 @@ export default function App() {
               tables={tables}
               activeTable={activeTable}
               onSelectTable={(tbl) => setActiveTable(tbl)}
-              onRefresh={() => verifyConnection(supabaseClient, supabaseUrl, supabaseKey)}
+              onRefresh={() => verifyConnection(supabaseClient, apiUrl)}
               isLoading={loadingTables}
             />
 
